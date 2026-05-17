@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GT7 Leaderboard Analyser</title>
+<style>
+:root{--bg:#0b0f14;--panel:#121922;--panel2:#0f141c;--text:#e8edf4;--muted:#9fb0c3;--accent:#5bb6ff;--green:#8bffb0;--border:#263445;--warn:#ffcb6b;--hi:rgba(91,182,255,.16);--hib:#5bb6ff}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:linear-gradient(180deg,#0b0f14,#0f141c);color:var(--text)}.wrap{max-width:1500px;margin:auto;padding:20px}h1{margin:0 0 8px;font-size:32px}.sub,.hint,.muted{color:var(--muted);font-size:13px}.toolbar,.filters,.grid,.table-wrap,.event-card,.chart-card{background:rgba(18,25,34,.92);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.25)}.toolbar,.filters,.event-card{padding:14px;margin-bottom:16px}.toolbar-row,.filter-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}.toolbar-row>*{min-height:40px}input,select,button{background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-size:14px}input[type=file]{border-style:dashed;color:var(--muted)}button{cursor:pointer}button:hover{border-color:var(--accent)}.event-card{display:grid;grid-template-columns:2fr repeat(4,1fr);gap:12px}.event-item,.card{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:14px}.event-item .label,.card .label{color:var(--muted);font-size:13px;margin-bottom:8px}.event-item .value{font-size:16px;font-weight:700;line-height:1.25}.card .value{font-size:26px;font-weight:700}.small{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.35}.grid{padding:14px;margin-bottom:16px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}.my-result{border-color:var(--hib);background:linear-gradient(180deg,rgba(91,182,255,.12),rgba(18,25,34,.92))}.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}.chart-card{padding:14px}.chart-card h3{margin:0 0 12px}.bars{display:flex;align-items:end;gap:8px;height:220px;padding-top:8px;border-top:1px solid var(--border)}.bar-col{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:end;align-items:center;gap:8px;height:100%}.bar{width:100%;max-width:80px;border-radius:10px 10px 4px 4px;background:linear-gradient(180deg,var(--accent),#2b6cff);min-height:2px}.bar.green{background:linear-gradient(180deg,var(--green),#27c36a)}.bar-label,.bar-value{text-align:center;font-size:12px;color:var(--muted);word-break:break-word}.bar-value{color:var(--text);font-weight:700;line-height:1.25}.table-wrap{padding:14px}.table-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}.table-scroll{max-height:620px;overflow:auto;border:1px solid var(--border);border-radius:10px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px 8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}th{color:var(--muted);position:sticky;top:0;background:rgba(18,25,34,.98);z-index:1}td a{color:var(--accent);text-decoration:none}.pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;border:1px solid var(--border);background:var(--panel2);white-space:nowrap}.warn{color:var(--warn)}tr.highlight-row td{background:var(--hi);border-top:1px solid var(--hib);border-bottom:1px solid var(--hib)}tr.highlight-row td:first-child{border-left:3px solid var(--hib)}@media(max-width:1100px){.grid{grid-template-columns:repeat(3,1fr)}.charts{grid-template-columns:1fr}.event-card{grid-template-columns:1fr 1fr}}@media(max-width:700px){.wrap{padding:14px}h1{font-size:26px}.grid{grid-template-columns:repeat(2,1fr)}.event-card{grid-template-columns:1fr}.toolbar-row,.filter-row{align-items:stretch}.toolbar-row>*,.filter-row>*{width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>GT7 Leaderboard Analyser</h1>
+<div class="sub">Load leaderboard JSON chunks, then optionally load cars.csv, maker.csv and cargrp.csv to humanise car data.</div>
+<div class="toolbar">
+  <div class="toolbar-row">
+    <input id="fileInput" type="file" accept=".json,application/json" multiple />
+    <button id="loadSampleBtn">Load sample</button>
+    <button id="exportFilteredBtn" disabled>Export filtered JSON</button>
+    <div id="loadStatus" class="hint">No leaderboard files loaded yet.</div>
+  </div>
+  <div class="toolbar-row" style="margin-top:12px">
+    <label class="hint">cars.csv <input id="carsCsvInput" type="file" accept=".csv,text/csv" /></label>
+    <label class="hint">maker.csv <input id="makersCsvInput" type="file" accept=".csv,text/csv" /></label>
+    <label class="hint">cargrp.csv <input id="groupsCsvInput" type="file" accept=".csv,text/csv" /></label>
+    <button id="loadLookupBtn">Load car lookup CSVs</button>
+    <div id="lookupStatus" class="hint">Lookup not loaded yet.</div>
+  </div>
+  <div class="toolbar-row" style="margin-top:12px">
+    <input id="myPsnInput" placeholder="Your PSN ID e.g. gcooley66" />
+    <button id="findMyResultBtn">Find my result</button>
+    <div id="myResultStatus" class="hint">Optional: enter your PSN ID to highlight your result.</div>
+  </div>
+</div>
+<div id="eventMetaPanel" class="event-card" style="display:none"></div>
+<div id="medalBucketGrid" class="grid"></div>
+<div class="filters"><div class="filter-row">
+  <input id="searchInput" placeholder="Search driver / PSN / car / manufacturer / country / user ID / pace bucket" />
+  <select id="drFilter"><option value="">All DR</option></select>
+  <select id="countryFilter"><option value="">All countries</option></select>
+  <select id="manufacturerFilter"><option value="">All manufacturers</option></select>
+  <select id="groupFilter"><option value="">All groups</option></select>
+  <select id="paceBucketFilter"><option value="">All pace buckets</option><option value="Platinum">Platinum ≤1.5%</option><option value="Gold">Gold ≤3%</option><option value="Silver">Silver ≤5%</option><option value="Bronze">Bronze ≤10%</option><option value="Outside">Outside >10%</option></select>
+  <select id="replayFilter"><option value="">All replay types</option><option value="full">Full replay</option><option value="ghost_only">Ghost data only</option><option value="none">No replay data</option><option value="legacy_top10">Legacy replay</option></select>
+  <select id="sortFilter"><option value="rankAsc">Sort: Rank ↑</option><option value="rankDesc">Sort: Rank ↓</option><option value="timeAsc">Sort: Time ↑</option><option value="timeDesc">Sort: Time ↓</option><option value="driverAsc">Sort: Driver A→Z</option></select>
+  <button id="clearFiltersBtn">Clear filters</button>
+</div></div>
+<div id="myResultPanel" class="grid my-result" style="display:none"></div>
+<div id="summaryGrid" class="grid"></div>
+<div class="charts"><div class="chart-card"><h3>DR distribution</h3><div id="drChart" class="bars"></div></div><div class="chart-card"><h3>Replay profile</h3><div id="replayChart" class="bars"></div></div></div>
+<div class="charts"><div class="chart-card"><h3>Medal pace buckets</h3><div id="paceBucketChart" class="bars"></div></div><div class="chart-card"><h3>Car groups</h3><div id="groupChart" class="bars"></div></div></div>
+<div class="charts"><div class="chart-card"><h3>Top manufacturers</h3><div id="manufacturerChart" class="bars"></div></div><div class="chart-card"><h3>Top cars</h3><div id="carChart" class="bars"></div></div></div>
+<div class="charts"><div class="chart-card"><h3>Sharp end time buckets</h3><div id="sharpTimeBucketChart" class="bars"></div></div><div class="chart-card"><h3>Population time buckets</h3><div id="populationTimeBucketChart" class="bars"></div></div></div>
+<div class="charts"><div class="chart-card"><h3>Replay note</h3><div class="hint" style="padding-top:16px;line-height:1.6">Full replay = replayId present.<br>Ghost data only = line/ghost timing data exists, but no full replay asset was exposed.<br>Legacy replay = replay present outside the expected top 10 behaviour.</div></div><div class="chart-card"><h3>Time bucket note</h3><div class="hint" style="padding-top:16px;line-height:1.6">Sharp end shows the fastest 20 populated 0.1s buckets from the front.<br>Population shows the 10 busiest 0.1s buckets, ordered by time.</div></div></div>
+<div class="table-wrap"><div class="table-head"><div><strong>Filtered rows</strong> <span id="rowCount" class="muted"></span></div><div class="hint">Everything runs locally in your browser.</div></div><div class="table-scroll"><table><thead><tr><th>Rank</th><th>Driver</th><th>DR</th><th>SR</th><th>Time</th><th>Pace</th><th>Country</th><th>Replay</th><th>Manufacturer</th><th>Car</th><th>Group</th><th>Updated</th></tr></thead><tbody id="resultsBody"></tbody></table></div><div class="hint" style="margin-top:12px">Loads old row-array JSON and new { eventMeta, rows } JSON.</div></div>
+</div>
+<script>
+const sampleData=[{"rank":"1","driver":"WetMaks","psnId":"WetMaks","dr":"A+","sr":"S","time":"1:30.363","countryCode":"RU","userId":"u1","lineReplayId":"x","updateTime":"2026-01-29T00:27:47Z","manufacturerId":0,"carCode":3333},{"rank":"2","driver":"DryMaks","psnId":"DryMaks","dr":"A+","sr":"S","time":"1:30.364","countryCode":"BG","userId":"u2","lineReplayId":"x","updateTime":"2026-01-19T19:10:12Z","manufacturerId":0,"carCode":3333},{"rank":"12","driver":"LegacyReplayGuy","psnId":"LegacyReplayGuy","dr":"A+","sr":"S","time":"1:30.900","countryCode":"GB","userId":"legacy-123","replayId":"987654321","lineReplayId":"x","updateTime":"2026-01-22T19:10:12Z","manufacturerId":0,"carCode":2131},{"rank":"523","driver":"NoReplaySuspicious","psnId":"NoReplaySuspicious","dr":"A","sr":"S","time":"1:32.222","countryCode":"US","userId":"ghost-1","lineReplayId":"x","updateTime":"2026-01-29T22:10:12Z","manufacturerId":0,"carCode":3502}];
+let rawData=[],filteredData=[],carLookup={},makerLookup={},groupLookup={},carGroupByCarCode={},leaderTimeMs=null,eventMeta=null,highlightedResultKey="";
+const GROUP_LABELS={"1":"Gr.1","2":"Gr.2","3":"Gr.3","4":"Gr.4","B":"Gr.B","N":"Road","X":"Special / Vision"};
+function nkey(v){const s=String(v??"").trim();return s.replace(/^0+(?=\d)/,"")}
+function variants(v){const s=String(v??"").trim(),n=nkey(s);return[...new Set([s,n].filter(Boolean))]}
+function first(...vs){for(const v of vs){const s=String(v??"").trim();if(s)return s}return""}
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+function compact(v){return String(v??"").replace(/\u00a0/g," ").replace(/\s+/g," ").trim()}
+function cut(v,markers){let t=compact(v);if(!t)return"";const l=t.toLowerCase();let c=-1;for(const m of markers){const i=l.indexOf(String(m).toLowerCase());if(i>0&&(c===-1||i<c))c=i}return compact(c>-1?t.slice(0,c):t)}
+function ms(t){const m=String(t||"").match(/^(\d+):(\d{2})\.(\d{3})$/);return m?Number(m[1])*60000+Number(m[2])*1000+Number(m[3]):null}
+function bucket(p){if(p==null||Number.isNaN(p))return"";if(p<=1.5)return"Platinum";if(p<=3)return"Gold";if(p<=5)return"Silver";if(p<=10)return"Bronze";return"Outside"}
+function slug(t,f="unknown"){return String(t||"").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80)||f}
+function filename(scope,count){const d=new Date().toISOString().slice(0,10),base=`gt7_${slug(eventMeta?.track||eventMeta?.title||"event")}_${slug(eventMeta?.tyreCode||eventMeta?.availableTyres||"tyres")}`;return`${base}_${scope}_${count}rows_${d}.json`}
+function cleanMeta(m){
+  if(!m||typeof m!=="object")return null;
+
+  const generalStop=["Global Ranking","Position","Driver","DR","SR","Race Settings","Regulations"];
+  const labels={RH:"Racing Hard",RM:"Racing Medium",RS:"Racing Soft",IM:"Intermediate",W:"Wet",CH:"Comfort Hard",CM:"Comfort Medium",CS:"Comfort Soft",SH:"Sports Hard",SM:"Sports Medium",SS:"Sports Soft"};
+
+  let code=compact(m.tyreCode||"").toUpperCase();
+  const rawTyres=compact(m.availableTyres||"");
+
+  if(!code){
+    if(rawTyres.toUpperCase().includes("RACINGRS"))code="RS";
+    else if(rawTyres.toUpperCase().includes("RACINGRM"))code="RM";
+    else if(rawTyres.toUpperCase().includes("RACINGRH"))code="RH";
+  }
+
+  const cleanTitle=cut(m.title||"Lap Time Challenge",["Track","Entry Period","Available Tyres","Global Ranking"]);
+  const cleanShortcut=cut(m.shortcutPenalty,["Global Ranking","Position","Driver","DR","SR","Time"]);
+
+  return{
+    ...m,
+    title: cleanTitle || "Lap Time Challenge",
+    track: cut(m.track,generalStop),
+    entryPeriod: cut(m.entryPeriod,generalStop),
+    tyreCode: code,
+    availableTyres: labels[code] || cut(rawTyres,["Wide Body","Nitrous/Overtake","BoP/Tuning","Car Settings","Track Limit","Global Ranking"]),
+    bopTuningProhibited: cut(m.bopTuningProhibited,["Car Settings","Track Limit","Shortcut Penalty","Global Ranking"]),
+    carSettings: cut(m.carSettings,["Track Limit","Shortcut Penalty","Global Ranking"]),
+    wideBody: cut(m.wideBody,["Nitrous/Overtake","BoP/Tuning","Car Settings","Track Limit","Global Ranking"]),
+    nitrousOvertake: cut(m.nitrousOvertake,["BoP/Tuning","Car Settings","Track Limit","Global Ranking"]),
+    trackLimit: cut(m.trackLimit,["Shortcut Penalty","Global Ranking"]),
+    shortcutPenalty: cleanShortcut
+  }
+}
+function parseCsv(text){const rows=[];let cur="",row=[],q=false;for(let i=0;i<text.length;i++){const ch=text[i],nx=text[i+1];if(ch==='"'&&nx==='"'){cur+='"';i++;continue}if(ch==='"'){q=!q;continue}if(ch===","&&!q){row.push(cur);cur="";continue}if((ch==="\n"||ch==="\r")&&!q){if(ch==="\r"&&nx==="\n")i++;row.push(cur);cur="";if(row.some(c=>c.trim()))rows.push(row);row=[];continue}cur+=ch}row.push(cur);if(row.some(c=>c.trim()))rows.push(row);if(!rows.length)return[];const h=rows[0].map(x=>x.replace(/^\uFEFF/,"").trim());return rows.slice(1).map(vals=>{const o={};h.forEach((x,i)=>o[x]=(vals[i]??"").trim());return o})}
+function buildLookups(carsRows, makerRows, groupRows) {
+  makerLookup = {};
+
+  makerRows.forEach(row => {
+    const id = first(row.ID, row.Id, row.id, row.MakerID, row.MakerId);
+    const maker = {
+      id: nkey(id),
+      name: first(row.Name, row.ShortName, row.MakerName, row.Manufacturer),
+      countryId: first(row.Country, row.CountryID, row.CountryId)
+    };
+
+    variants(id).forEach(key => makerLookup[key] = maker);
+  });
+
+  groupLookup = {};
+  carGroupByCarCode = {};
+
+  groupRows.forEach(row => {
+    const id = first(row.ID, row.Id, row.id, row.GroupID, row.GroupId);
+    const groupCode = first(row.Group, row.Code, row.GroupCode, row.Class, row.Category, row.Name);
+    const label = first(row.Label, row.DisplayName, row.ShortName) || GROUP_LABELS[groupCode] || groupCode;
+
+    const group = {
+      id: nkey(id),
+      code: groupCode,
+      label
+    };
+
+    variants(id).forEach(key => groupLookup[key] = group);
+
+    // Some cargrp.csv variants are effectively carCode -> groupCode.
+    // Support those as well as pure group lookup tables.
+    const possibleCarCode = first(row.CarCode, row.CarID, row.CarId, row.Car, row.ID);
+    if (possibleCarCode && groupCode) {
+      variants(possibleCarCode).forEach(key => {
+        carGroupByCarCode[key] = {
+          code: groupCode,
+          label: GROUP_LABELS[groupCode] || label || groupCode
+        };
+      });
+    }
+  });
+
+  carLookup = {};
+
+  carsRows.forEach(row => {
+    const carCodeRaw = first(row.ID, row.Id, row.id, row.CarCode, row.Code);
+    const carCode = nkey(carCodeRaw);
+
+    const makerIdRaw = first(row.Maker, row.MakerID, row.MakerId, row.ManufacturerID, row.ManufacturerId);
+    const maker = makerLookup[nkey(makerIdRaw)] || makerLookup[String(makerIdRaw).trim()] || {};
+
+    const rawGroupId = first(
+      row.Group,
+      row.GroupID,
+      row.GroupId,
+      row.CarGroup,
+      row.CarGrp,
+      row.Category,
+      row.Regulation,
+      row.Class
+    );
+
+    const groupFromCarRow = groupLookup[nkey(rawGroupId)] || groupLookup[String(rawGroupId).trim()] || {};
+    const groupFromCarGroupFile = carGroupByCarCode[carCode] || carGroupByCarCode[String(carCodeRaw).trim()] || {};
+    const directGroup = rawGroupId ? { code: rawGroupId, label: GROUP_LABELS[rawGroupId] || rawGroupId } : {};
+
+    const groupCode = first(groupFromCarRow.code, groupFromCarGroupFile.code, directGroup.code);
+    const groupLabel = first(groupFromCarRow.label, groupFromCarGroupFile.label, directGroup.label);
+
+    const meta = {
+      carCode,
+      carName: first(row.ShortName, row.Name, row.CarName, row.Model),
+      makerId: nkey(makerIdRaw),
+      manufacturerName: maker.name || "",
+      manufacturerCountryId: maker.countryId || "",
+      groupCode,
+      groupLabel
+    };
+
+    variants(carCodeRaw).forEach(key => carLookup[key] = meta);
+  });
+
+  rawData = rawData.map(enrich);
+  populateFilters(rawData);
+  renderEventMeta(eventMeta);
+  renderMedalBuckets(rawData);
+  renderSummary(rawData);
+  applyFilters();
+
+  const knownCars = rawData.filter(row => row.carName).length;
+  const knownMakers = rawData.filter(row => row.manufacturerName).length;
+  const knownGroups = rawData.filter(row => row.groupLabel).length;
+
+  document.getElementById("lookupStatus").textContent =
+    `Loaded lookup: ${Object.keys(carLookup).length} car keys, ${Object.keys(makerLookup).length} maker keys, ${Object.keys(groupLookup).length} group keys. ` +
+    `Resolved cars: ${knownCars.toLocaleString()} / ${rawData.length.toLocaleString()}, ` +
+    `makers: ${knownMakers.toLocaleString()} / ${rawData.length.toLocaleString()}, ` +
+    `groups: ${knownGroups.toLocaleString()} / ${rawData.length.toLocaleString()}.`;
+}
+
+async function loadLookup(){const cf=carsCsvInput.files?.[0],mf=makersCsvInput.files?.[0],gf=groupsCsvInput.files?.[0];if(!cf||!mf||!gf){lookupStatus.textContent="Please select cars.csv, maker.csv and cargrp.csv.";return}try{buildLookups(parseCsv(await cf.text()),parseCsv(await mf.text()),parseCsv(await gf.text()));if(myPsnInput.value.trim())findMe()}catch(e){lookupStatus.textContent="Could not load lookup CSVs.";console.error(e)}}
+function enrich(r){const rankNum=Number(r.rank),timeMs=ms(r.time),p=timeMs!=null&&leaderTimeMs!=null?((timeMs-leaderTimeMs)/leaderTimeMs)*100:null,hasReplay=!!r.replayId,hasLine=!!r.lineReplayId;let replayType="none";if(hasReplay)replayType="full";else if(hasLine)replayType="ghost_only";const isLegacyTop10Replay=hasReplay&&rankNum>10,car=carLookup[nkey(r.carCode)]||carLookup[String(r.carCode??"").trim()]||{};return{...r,rankNum,timeMs,percentOffLeader:p,paceBucket:bucket(p),replayType,hasReplay,hasLineReplay:hasLine,isLegacyTop10Replay,carName:car.carName||r.carName||"",makerId:car.makerId||r.makerId||r.manufacturerId||"",manufacturerName:car.manufacturerName||r.manufacturerName||"",manufacturerCountryId:car.manufacturerCountryId||r.manufacturerCountryId||"",groupCode:car.groupCode||r.groupCode||"",groupLabel:car.groupLabel||r.groupLabel||""}}
+function setStatus(t){loadStatus.textContent=t}function uniq(v){return[...new Set(v.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)))}
+function renderEventMeta(m){
+  m=cleanMeta(m);
+  eventMeta=m;
+  const p=eventMetaPanel;
+  if(!m||!Object.values(m).some(Boolean)){p.style.display="none";p.innerHTML="";return}
+
+  const tyreMain=m.tyreCode||"Unknown";
+  const tyreSub=m.availableTyres&&m.availableTyres!==m.tyreCode?m.availableTyres:"";
+  const bopMain=[m.bopTuningProhibited?`BoP/Tuning: ${m.bopTuningProhibited}`:"",m.carSettings?`Car settings: ${m.carSettings}`:""].filter(Boolean).join(" · ")||"Not captured";
+  const bopSub=[m.wideBody?`Wide body: ${m.wideBody}`:"",m.nitrousOvertake?`Nitrous/Overtake: ${m.nitrousOvertake}`:""].filter(Boolean).join(" · ");
+  const limitsMain=[m.trackLimit?`Track limit: ${m.trackLimit}`:"",m.shortcutPenalty?`Shortcut: ${m.shortcutPenalty}`:""].filter(Boolean).join(" · ")||"Not captured";
+
+  p.style.display="grid";
+  p.innerHTML=`
+    <div class="event-item"><div class="label">Event</div><div class="value">${esc(m.title||"GT7 Event")}</div><div class="small">${esc(m.eventId?`ID ${m.eventId}`:m.sourceUrl||"")}</div></div>
+    <div class="event-item"><div class="label">Track</div><div class="value">${esc(m.track||"Unknown")}</div><div class="small">${esc(m.entryPeriod||"")}</div></div>
+    <div class="event-item"><div class="label">Tyres</div><div class="value">${esc(tyreMain)}</div><div class="small">${esc(tyreSub)}</div></div>
+    <div class="event-item"><div class="label">Car / BoP</div><div class="value">${esc(bopMain)}</div><div class="small">${esc(bopSub)}</div></div>
+    <div class="event-item"><div class="label">Limits</div><div class="value">${esc(limitsMain)}</div><div class="small">${esc(m.capturedAt?`Captured ${new Date(m.capturedAt).toLocaleString()}`:"")}</div></div>`
+}
+function populateFilters(data){const drs=uniq(data.map(d=>d.dr)),countries=uniq(data.map(d=>d.countryCode)),mans=uniq(data.map(d=>d.manufacturerName)),groups=uniq(data.map(d=>d.groupLabel)),ordered=countries.includes("GB")?["GB",...countries.filter(c=>c!=="GB")]:countries;drFilter.innerHTML='<option value="">All DR</option>'+drs.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");countryFilter.innerHTML='<option value="">All countries</option>'+ordered.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");manufacturerFilter.innerHTML='<option value="">All manufacturers</option>'+mans.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");groupFilter.innerHTML='<option value="">All groups</option>'+groups.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("")}
+function countBy(a,fn){const m=new Map();for(const x of a){const k=fn(x);m.set(k,(m.get(k)||0)+1)}return m}function topEntries(m,n=8){return[...m.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n)}function pct(label,count,total){return[label,count,total?((count/total)*100).toFixed(2)+"%":"0.00%"]}
+function bars(id,entries,green=false){const root=document.getElementById(id);root.innerHTML="";if(!entries.length){root.innerHTML='<div class="muted">No data yet.</div>';return}const max=Math.max(...entries.map(e=>e[1]),1);for(const [lab,val,sec] of entries){const c=document.createElement("div");c.className="bar-col";c.innerHTML=`<div class="bar-value">${esc(Number(val).toLocaleString())}${sec?`<br><span class="muted">${esc(sec)}</span>`:""}</div><div class="bar${green?" green":""}" style="height:${Math.max(4,(val/max)*160)}px"></div><div class="bar-label">${esc(lab)}</div>`;root.appendChild(c)}}
+function paceBucketEntries(data) {
+  return [
+    pct("Platinum", data.filter(x => x.paceBucket === "Platinum").length, data.length),
+    pct("Gold", data.filter(x => x.paceBucket === "Gold").length, data.length),
+    pct("Silver", data.filter(x => x.paceBucket === "Silver").length, data.length),
+    pct("Bronze", data.filter(x => x.paceBucket === "Bronze").length, data.length),
+    pct("Outside", data.filter(x => x.paceBucket === "Outside").length, data.length)
+  ];
+}
+
+function renderMedalCards(d){
+  const root=document.getElementById("medalBucketGrid");
+  if(!root)return;
+
+  const total=d.length||1;
+  const medals=[
+    ["Platinum",d.filter(x=>x.paceBucket==="Platinum").length,"within 1.5%"],
+    ["Gold",d.filter(x=>x.paceBucket==="Gold").length,"within 3%"],
+    ["Silver",d.filter(x=>x.paceBucket==="Silver").length,"within 5%"],
+    ["Bronze",d.filter(x=>x.paceBucket==="Bronze").length,"within 10%"],
+    ["Outside",d.filter(x=>x.paceBucket==="Outside").length,"over 10%"]
+  ];
+
+  root.innerHTML=medals.map(([label,count,note])=>{
+    const percent=((count/total)*100).toFixed(2);
+    return `<div class="card"><div class="label">${esc(label)}</div><div class="value">${Number(count).toLocaleString()}</div><div class="small">${percent}% · ${note}</div></div>`;
+  }).join("");
+}
+
+function renderSummary(d){
+  const g=summaryGrid;
+  const fast=d.filter(x=>x.timeMs!=null).sort((a,b)=>a.timeMs-b.timeMs)[0];
+  const slow=d.filter(x=>x.timeMs!=null).sort((a,b)=>b.timeMs-a.timeMs)[0];
+  const cards=[
+    ["Entries",d.length,"Total loaded rows"],
+    ["Countries",new Set(d.map(x=>x.countryCode).filter(Boolean)).size,"Unique country codes"],
+    ["Cars",new Set(d.map(x=>x.carName||x.carCode).filter(Boolean)).size,"Unique cars"],
+    ["Manufacturers",new Set(d.map(x=>x.manufacturerName).filter(Boolean)).size,"Unique makers"],
+    ["Groups",new Set(d.map(x=>x.groupLabel).filter(Boolean)).size,"Unique car groups"],
+    ["Full replays",d.filter(x=>x.replayType==="full").length,"replayId present"],
+    ["Ghost data only",d.filter(x=>x.replayType==="ghost_only").length,"line/ghost data only"],
+    ["Legacy replay",d.filter(x=>x.isLegacyTop10Replay).length,"Replay present outside top 10"],
+  ];
+  g.innerHTML=cards.map(([l,v,s])=>`<div class="card"><div class="label">${esc(l)}</div><div class="value">${Number.isFinite(v)?Number(v).toLocaleString():esc(v)}</div><div class="small">${esc(s)}</div></div>`).join("");
+  if(fast&&slow)g.innerHTML+=`<div class="card"><div class="label">Fastest</div><div class="value">${esc(fast.time)}</div><div class="small">${esc(fast.driver)}</div></div><div class="card"><div class="label">Slowest</div><div class="value">${esc(slow.time)}</div><div class="small">${esc(slow.driver)}</div></div>`;
+}
+
+function renderMedalBuckets(d){
+  const medalSource = rawData.length ? rawData : d;
+
+  bars("paceBucketChart",[
+    pct("Platinum",medalSource.filter(x=>x.paceBucket==="Platinum").length,medalSource.length),
+    pct("Gold",medalSource.filter(x=>x.paceBucket==="Gold").length,medalSource.length),
+    pct("Silver",medalSource.filter(x=>x.paceBucket==="Silver").length,medalSource.length),
+    pct("Bronze",medalSource.filter(x=>x.paceBucket==="Bronze").length,medalSource.length),
+    pct("Outside",medalSource.filter(x=>x.paceBucket==="Outside").length,medalSource.length)
+  ],true);
+}
+
+function renderCharts(d){
+  bars("drChart",topEntries(countBy(d,x=>x.dr||"Unknown")));
+  bars("replayChart",[pct("Full replay",d.filter(x=>x.replayType==="full").length,d.length),pct("Ghost data only",d.filter(x=>x.replayType==="ghost_only").length,d.length),pct("No replay data",d.filter(x=>x.replayType==="none").length,d.length),pct("Legacy replay",d.filter(x=>x.isLegacyTop10Replay).length,d.length)],true);bars("paceBucketChart",paceBucketEntries(d),true);// Medal pace bucket chart moved to dedicated event-level section
+  bars("groupChart",topEntries(countBy(d,x=>x.groupLabel||"Unknown")),true);bars("manufacturerChart",topEntries(countBy(d,x=>x.manufacturerName||"Unknown")));bars("carChart",topEntries(countBy(d,x=>x.carName||String(x.carCode||"Unknown"))));const bm=new Map();for(const r of d){if(r.timeMs==null)continue;const b=Math.floor(r.timeMs/100)*100;bm.set(b,(bm.get(b)||0)+1)}const fmt=x=>`${Math.floor(x/60000)}:${String(Math.floor((x%60000)/1000)).padStart(2,"0")}.${Math.floor((x%1000)/100)}`;const all=[...bm.entries()].sort((a,b)=>a[0]-b[0]).map(([b,c])=>[fmt(b),c]);bars("sharpTimeBucketChart",all.slice(0,20));bars("populationTimeBucketChart",[...bm.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10).sort((a,b)=>a[0]-b[0]).map(([b,c])=>[fmt(b),c]))}
+function replayPill(r){if(r.isLegacyTop10Replay)return'<span class="pill warn">legacy replay</span>';if(r.replayType==="full")return'<span class="pill">full replay</span>';if(r.replayType==="ghost_only")return'<span class="pill">ghost data only</span>';return'<span class="pill muted">no replay data</span>'}function rkey(r){return`${r.rank}|${r.psnId||r.driver}|${r.time}`.toLowerCase()}
+function renderTable(d){resultsBody.innerHTML=d.slice(0,1000).map(r=>{const hi=highlightedResultKey&&rkey(r)===highlightedResultKey,p=r.percentOffLeader!=null?`${r.percentOffLeader.toFixed(2)}%`:"";return`<tr class="${hi?"highlight-row":""}"><td>${esc(r.rank)}</td><td>${r.profileUrl?`<a href="${esc(r.profileUrl)}" target="_blank" rel="noreferrer">${esc(r.driver)}</a>`:esc(r.driver)}<div class="muted">${esc(r.psnId||r.userId||"")}</div></td><td>${esc(r.dr)}</td><td>${esc(r.sr)}</td><td>${esc(r.time)}</td><td>${esc(r.paceBucket||"")}<div class="muted">${esc(p)}</div></td><td>${esc(r.countryCode||"")}</td><td>${replayPill(r)}</td><td>${esc(r.manufacturerName||"")}</td><td>${esc(r.carName||r.carCode||"")}<div class="muted">${esc(r.carCode??"")}</div></td><td>${esc(r.groupLabel||r.groupCode||"")}</td><td>${esc(r.updateTime||"")}</td></tr>`}).join("");if(d.length>1000)resultsBody.innerHTML+='<tr><td colspan="12" class="muted">Showing first 1,000 filtered rows. Export filtered JSON for the full set.</td></tr>'}
+function gap(msv){if(msv==null||Number.isNaN(msv))return"";const sign=msv>=0?"+":"-",a=Math.abs(msv),m=Math.floor(a/60000),s=Math.floor((a%60000)/1000),mi=a%1000;return m>0?`${sign}${m}:${String(s).padStart(2,"0")}.${String(mi).padStart(3,"0")}`:`${sign}${s}.${String(mi).padStart(3,"0")}s`}
+function findMe(){const input=myPsnInput.value.trim(),panel=myResultPanel;if(!input){panel.style.display="none";highlightedResultKey="";applyFilters();myResultStatus.textContent="Enter your PSN ID first.";return}const n=input.toLowerCase(),matches=rawData.filter(r=>String(r.psnId||"").toLowerCase()===n||String(r.driver||"").toLowerCase()===n||String(r.userId||"").toLowerCase()===n),me=matches.sort((a,b)=>a.rankNum-b.rankNum)[0];if(!me){panel.style.display="none";highlightedResultKey="";applyFilters();myResultStatus.textContent=`No result found for ${input}.`;return}highlightedResultKey=rkey(me);const lead=rawData.filter(r=>r.timeMs!=null).sort((a,b)=>a.timeMs-b.timeMs)[0],gm=lead&&me.timeMs!=null?me.timeMs-lead.timeMs:null,topPct=rawData.length?(me.rankNum/rawData.length)*100:null,ahead=rawData.filter(r=>r.timeMs!=null&&me.timeMs!=null&&r.timeMs<me.timeMs).length,same=rawData.filter(r=>r.timeMs!=null&&me.timeMs!=null&&r.timeMs===me.timeMs).length;panel.style.display="grid";panel.innerHTML=`<div class="card"><div class="label">My rank</div><div class="value">${esc(me.rank)}</div><div class="small">of ${rawData.length.toLocaleString()} loaded rows</div></div><div class="card"><div class="label">My time</div><div class="value">${esc(me.time)}</div><div class="small">${esc(me.dr||"")} / ${esc(me.sr||"")}</div></div><div class="card"><div class="label">Gap to leader</div><div class="value">${esc(gap(gm))}</div><div class="small">Leader: ${esc(lead?.driver||"")} ${esc(lead?.time||"")}</div></div><div class="card"><div class="label">Position band</div><div class="value">Top ${topPct!=null?topPct.toFixed(2):"?"}%</div><div class="small">${ahead.toLocaleString()} faster, ${same.toLocaleString()} same time</div></div><div class="card"><div class="label">Pace bucket</div><div class="value" style="font-size:20px">${esc(me.paceBucket||"Unknown")}</div><div class="small">${me.percentOffLeader!=null?esc(me.percentOffLeader.toFixed(2)+"% off leader"):"No pace data"}</div></div><div class="card"><div class="label">My car</div><div class="value" style="font-size:18px">${esc(me.carName||me.carCode||"Unknown")}</div><div class="small">${esc(me.manufacturerName||"Unknown")} · ${esc(me.groupLabel||me.groupCode||"Unknown")}</div></div><div class="card"><div class="label">Replay type</div><div class="value" style="font-size:20px">${me.isLegacyTop10Replay?"legacy replay":me.replayType==="ghost_only"?"ghost data only":me.replayType==="full"?"full replay":"no replay data"}</div><div class="small">${esc(me.countryCode||"")}</div></div>`;myResultStatus.textContent=`Found ${me.driver} at rank ${me.rank}.`;applyFilters()}
+function applyFilters(){const q=searchInput.value.trim().toLowerCase(),dr=drFilter.value,c=countryFilter.value,m=manufacturerFilter.value,g=groupFilter.value,pb=paceBucketFilter.value,rp=replayFilter.value,sort=sortFilter.value;filteredData=rawData.filter(r=>{if(dr&&r.dr!==dr)return false;if(c&&r.countryCode!==c)return false;if(m&&r.manufacturerName!==m)return false;if(g&&r.groupLabel!==g)return false;if(pb&&r.paceBucket!==pb)return false;if(rp){if(rp==="legacy_top10"&&!r.isLegacyTop10Replay)return false;if(rp!=="legacy_top10"&&r.replayType!==rp)return false}if(q){const hay=[r.driver,r.psnId,r.countryCode,r.userId,r.rank,r.carCode,r.carName,r.manufacturerName,r.groupLabel,r.paceBucket].join(" ").toLowerCase();if(!hay.includes(q))return false}return true});filteredData.sort((a,b)=>sort==="rankDesc"?b.rankNum-a.rankNum:sort==="timeAsc"?(a.timeMs??Infinity)-(b.timeMs??Infinity):sort==="timeDesc"?(b.timeMs??-Infinity)-(a.timeMs??-Infinity):sort==="driverAsc"?String(a.driver).localeCompare(String(b.driver)):a.rankNum-b.rankNum);renderTable(filteredData);
+  renderCharts(filteredData);renderMedalCards(rawData);renderMedalBuckets(filteredData);rowCount.textContent=`(${filteredData.length.toLocaleString()} rows)`;exportFilteredBtn.disabled=!filteredData.length}
+function normaliseJson(json,holder){if(Array.isArray(json))return json;if(json&&typeof json==="object"){if(json.eventMeta&&!holder.value)holder.value=cleanMeta(json.eventMeta);if(Array.isArray(json.rows))return json.rows;const rows=[];Object.values(json).forEach(v=>{if(Array.isArray(v))rows.push(...v)});return rows}return[]}
+function loadData(data,label="Loaded",meta=null){if(!Array.isArray(data)){setStatus("That JSON does not look like an array of rows.");return}eventMeta=cleanMeta(meta||eventMeta);const lead=data.map(r=>({timeMs:ms(r.time)})).filter(r=>r.timeMs!=null).sort((a,b)=>a.timeMs-b.timeMs)[0];leaderTimeMs=lead?.timeMs??null;rawData=data.map(enrich);populateFilters(rawData);renderEventMeta(eventMeta);renderMedalCards(rawData);renderSummary(rawData);applyFilters();setStatus(`${label}: ${rawData.length.toLocaleString()} rows`);if(myPsnInput.value.trim())findMe()}
+function exportJson(){const rows=filteredData,blob=new Blob([JSON.stringify({format:"gt7-leaderboard-analyser-export-v1",exportedAt:new Date().toISOString(),eventMeta,totalLoadedRows:rawData.length,filteredRows:rows.length,rows},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename(rows.length===rawData.length?"allpages":"filtered",rows.length);a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+fileInput.addEventListener("change",async e=>{const files=[...(e.target.files||[])];if(!files.length)return;try{let all=[];const holder={value:null};for(const f of files){all=all.concat(normaliseJson(JSON.parse(await f.text()),holder))}function score(r){return[r.carCode,r.lineReplayId,r.replayId,r.countryCode,r.updateTime,r.userId,r.psnId,r.profileUrl].filter(v=>v!==undefined&&v!==null&&v!=="").length}const map=new Map();for(const r of all){const k=`${r.rank}-${r.psnId||r.driver}-${r.time}`,ex=map.get(k);if(!ex){map.set(k,r);continue}map.set(k,score(r)>score(ex)?{...ex,...r}:{...r,...ex})}const rows=[...map.values()].sort((a,b)=>Number(a.rank)-Number(b.rank));loadData(rows,`${files.length} files merged`,holder.value)}catch(err){setStatus("Could not read one or more files. Check they are valid JSON.");console.error(err)}});
+loadSampleBtn.onclick=()=>loadData(sampleData,"Sample",{title:"Sample Lap Time Challenge",eventId:"sample",track:"Autodromo Nazionale Monza",tyreCode:"RS",availableTyres:"Racing Soft",entryPeriod:"Sample period",bopTuningProhibited:"On",carSettings:"Specified",trackLimit:"Normal",shortcutPenalty:"Invalidate Time",capturedAt:new Date().toISOString()});exportFilteredBtn.onclick=exportJson;loadLookupBtn.onclick=loadLookup;findMyResultBtn.onclick=findMe;myPsnInput.addEventListener("keydown",e=>{if(e.key==="Enter")findMe()});clearFiltersBtn.onclick=()=>{searchInput.value="";drFilter.value="";countryFilter.value="";manufacturerFilter.value="";groupFilter.value="";paceBucketFilter.value="";replayFilter.value="";sortFilter.value="rankAsc";applyFilters()};["searchInput","drFilter","countryFilter","manufacturerFilter","groupFilter","paceBucketFilter","replayFilter","sortFilter"].forEach(id=>document.getElementById(id).addEventListener("input",applyFilters));
+loadData(sampleData,"Sample",{title:"Sample Lap Time Challenge",eventId:"sample",track:"Autodromo Nazionale Monza",tyreCode:"RS",availableTyres:"Racing Soft",entryPeriod:"Sample period",bopTuningProhibited:"On",carSettings:"Specified",trackLimit:"Normal",shortcutPenalty:"Invalidate Time",capturedAt:new Date().toISOString()});
+</script>
+</body>
+</html>
