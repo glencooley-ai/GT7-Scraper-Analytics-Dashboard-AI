@@ -72,7 +72,7 @@ Everything runs locally in the browser.
 
 /scraper
     gt7_scraper_indexeddb.user.js
-    gt7_scraper_localstorage.user.js
+    ~gt7_scraper_localstorage.user.js~
 
 /data
     cars.csv
